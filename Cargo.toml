@@ -1,0 +1,15 @@
+[package]
+name = "rust-bitmap"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "rust_bitmap"
+crate-type = ["cdylib"]
+
+[dependencies]
+numpy = "0.19.0"
+pyo3 = "0.19.0"
+roaring = "0.10.2"
+rust-numpy = "0.1.0"
