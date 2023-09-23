@@ -1,5 +1,5 @@
-use numpy::ndarray::{ArrayD, ArrayViewD, ArrayViewMutD};
-use numpy::{IntoPyArray, PyArrayDyn, PyReadonlyArrayDyn};
+use numpy::ndarray::{ArrayD, ArrayView1, ArrayViewD, ArrayViewMutD};
+use numpy::{PyArray1, PyReadonlyArray1};
 use pyo3::prelude::*;
 use roaring::{RoaringBitmap, RoaringTreemap};
 
@@ -29,5 +29,16 @@ impl ParticleTreemap {
 
     pub fn insert(&mut self, value: u64) -> bool {
         self.bitmap.insert(value)
+    }
+
+    pub fn from_array(&mut self, arr: PyReadonlyArray1<u64>) -> bool {
+        arr.as_array()
+            .iter()
+            .for_each(|x| _ = self.bitmap.insert(*x));
+        true
+    }
+
+    pub fn len(&self) -> u64 {
+        self.bitmap.len()
     }
 }
