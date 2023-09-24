@@ -1,11 +1,25 @@
+import time
 import rust_bitmap
 import numpy as np
 
-b1 = rust_bitmap.ParticleTreemap()
-b2 = rust_bitmap.ParticleTreemap()
+(arr,) = np.where(np.random.random(256**3) > 0.5)
+arr = arr.astype("u8")
+c = arr.size
 
-(arr,) = np.where(np.random.random(128**3) > 0.5)
-
-b1.from_array(arr.astype("uint64"))
+N = 10
+t1 = time.time()
+for i in range(N):
+    b1 = rust_bitmap.ParticleTreemap()
+    b1.from_array(arr)
+t2 = time.time()
+print(f"Time 1: {(t2-t1)/N:0.2f}")
 print(b1.len())
-print(arr.size)
+
+t1 = time.time()
+for i in range(N):
+    b2 = rust_bitmap.ParticleTreemap()
+    b2.insert_range(0, c)
+t2 = time.time()
+print(b2.len())
+
+print(f"Time 2: {(t2-t1)/N:0.2f}")
