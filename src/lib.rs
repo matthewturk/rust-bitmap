@@ -1,6 +1,6 @@
 use hilbert::{FloatDataRange, Point};
 use num_traits::cast::ToPrimitive;
-use numpy::ndarray::{ArrayD, ArrayView1, ArrayViewD, ArrayViewMutD};
+use numpy::ndarray::{ArrayD, ArrayView1, ArrayViewD, ArrayViewMutD, Axis};
 use numpy::{PyArray1, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::prelude::*;
 use roaring::{RoaringBitmap, RoaringTreemap};
@@ -48,15 +48,30 @@ impl ParticleTreemap {
         self.bitmap.len()
     }
 
-    pub fn from_normalized_coordinates(&mut self, arr: PyReadonlyArray2<f64>) {
+    pub fn union_len(&self, other: &Self) -> u64 {
+        self.bitmap.union_len(&other.bitmap)
+    }
+    pub fn intersection_len(&self, other: &Self) -> u64 {
+        self.bitmap.intersection_len(&other.bitmap)
+    }
+
+    pub fn difference_len(&self, other: &Self) -> u64 {
+        self.bitmap.difference_len(&other.bitmap)
+    }
+
+    pub fn from_normalized_coordinates(&mut self, arr: PyReadonlyArray2<f64>, bits: usize) {
         // 2097152 is 21 bits
-        let range = FloatDataRange::new(0.0, 1.0, 2097152.0);
+        let range = FloatDataRange::new(0.0, 1.0, (1 << bits) as f64);
         let mut coordinates = Vec::new();
         let mut next_id = 0;
-        for position in arr.as_array().outer_iter() {
-            position.for_each(|x| coordinates.push(range.compress(*x, 21)));
+        for (i, position) in arr.as_array().axis_iter(Axis(0)).enumerate() {
+            coordinates.clear();
+            position.for_each(|x| coordinates.push(range.compress(*x, bits)));
+            if (i % 10000 == 0) {
+                println!("Adding ... {} with total length {}", i, self.len())
+            }
             match Point::new(next_id, &coordinates)
-                .hilbert_transform(21)
+                .hilbert_transform(bits)
                 .to_u64()
             {
                 Some(val) => self.insert(val),
