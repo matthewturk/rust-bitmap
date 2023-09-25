@@ -1,9 +1,9 @@
 use hilbert::{FloatDataRange, Point};
 use num_traits::cast::ToPrimitive;
-use numpy::ndarray::{ArrayD, ArrayView1, ArrayViewD, ArrayViewMutD, Axis};
-use numpy::{PyArray1, PyReadonlyArray1, PyReadonlyArray2};
+use numpy::ndarray::Axis;
+use numpy::{PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::prelude::*;
-use roaring::{RoaringBitmap, RoaringTreemap};
+use roaring::RoaringTreemap;
 
 /// A Python module implemented in Rust.
 #[pymodule]
@@ -59,15 +59,29 @@ impl ParticleTreemap {
         self.bitmap.difference_len(&other.bitmap)
     }
 
+    pub fn serialized_size(&self) -> usize {
+        self.bitmap.serialized_size()
+    }
+
+    pub fn num_partitions(&self) -> usize {
+        self.bitmap.bitmaps().count()
+    }
+
+    pub fn partition_info(&self) {
+        for (index, bm) in self.bitmap.bitmaps() {
+            println!("Partition {} is of rank {}", index, bm.len());
+        }
+    }
+
     pub fn from_normalized_coordinates(&mut self, arr: PyReadonlyArray2<f64>, bits: usize) {
         // 2097152 is 21 bits
-        let range = FloatDataRange::new(0.0, 1.0, (1 << bits) as f64);
+        let range = FloatDataRange::new(0.0, 1.0, (1 << 21) as f64);
         let mut coordinates = Vec::new();
         let mut next_id = 0;
         for (i, position) in arr.as_array().axis_iter(Axis(0)).enumerate() {
             coordinates.clear();
             position.for_each(|x| coordinates.push(range.compress(*x, bits)));
-            if (i % 10000 == 0) {
+            if i % 10000 == 0 {
                 println!("Adding ... {} with total length {}", i, self.len())
             }
             match Point::new(next_id, &coordinates)
