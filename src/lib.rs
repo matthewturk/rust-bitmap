@@ -76,46 +76,40 @@ impl ParticleTreemap {
     pub fn from_normalized_coordinates(&mut self, arr: PyReadonlyArray2<f64>, bits: usize) {
         // 2097152 is 21 bits
         let range = FloatDataRange::new(0.0, 1.0, (1 << 21) as f64);
-        let mut coordinates = Vec::new();
-        let mut next_id = 0;
         for (i, position) in arr.as_array().axis_iter(Axis(0)).enumerate() {
-            coordinates.clear();
-            position.for_each(|x| coordinates.push(range.compress(*x, bits)));
+            let coordinates = position.map(|x| range.compress(*x, bits)).to_vec();
             if i % 10000 == 0 {
                 println!("Adding ... {} with total length {}", i, self.len())
             }
-            match Point::new(next_id, &coordinates)
-                .hilbert_transform(bits)
-                .to_u64()
-            {
-                Some(val) => self.insert(val),
-                None => continue,
-            };
-            next_id += 1;
+            self.insert(encode_morton_64bit(coordinates));
         }
     }
 }
 
-pub fn encode_morton_64bit(x_ind: u64, y_ind: u64, z_ind: u64) -> u64 {
-    spread_64bits_by2(z_ind) << 0 | spread_64bits_by2(y_ind) << 1 | spread_64bits_by2(x_ind) << 2
+pub fn encode_morton_64bit(ind: Vec<u32>) -> u64 {
+    let mut result = 0u64;
+    for (i, var) in ind.iter().enumerate() {
+        result = result | spread_64bits_by2(*var as u64) << i;
+    }
+    return result;
 }
 
 pub fn spread_64bits_by2(x: u64) -> u64 {
     let y: u64 = x;
     // x = ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---k jihg fedc ba98 7654 3210
-    let y = y & (0x00000000001FFFFF as u64);
+    let y = y & (0x00000000001FFFFFu64);
     // x = ---- ---- ---- ---- ---- ---k jihg fedc ba-- ---- ---- ---- ---- --98 7654 3210
-    let y = (y | (y << 20)) & (0x000001FFC00003FF as u64);
+    let y = (y | (y << 20)) & (0x000001FFC00003FFu64);
     // x = ---- ---- ---- -kji hgf- ---- ---- -edc ba-- ---- ---- 9876 5--- ---- ---4 3210
-    let y = (y | (y << 10)) & (0x0007E007C00F801F as u64);
+    let y = (y | (y << 10)) & (0x0007E007C00F801Fu64);
     // x = ---- ---- -kji h--- -gf- ---- -edc ---- ba-- ---- 987- ---6 5--- ---4 32-- --10
-    let y = (y | (y << 4)) & (0x00786070C0E181C3 as u64);
+    let y = (y | (y << 4)) & (0x00786070C0E181C3u64);
     // x = ---- ---k ji-- h--g --f- ---e d--c --b- -a-- --98 --7- -6-- 5--- -43- -2-- 1--0
-    let y = (y | (y << 2)) & (0x0199219243248649 as u64);
+    let y = (y | (y << 2)) & (0x0199219243248649u64);
     // x = ---- -kj- -i-- h--g --f- -e-- d--c --b- -a-- 9--8 --7- -6-- 5--4 --3- -2-- 1--0
-    let y = (y | (y << 2)) & (0x0649249249249249 as u64);
+    let y = (y | (y << 2)) & (0x0649249249249249u64);
     // x = ---k --j- -i-- h--g --f- -e-- d--c --b- -a-- 9--8 --7- -6-- 5--4 --3- -2-- 1--0
-    let y = (y | (y << 2)) & (0x1249249249249249 as u64);
+    let y = (y | (y << 2)) & (0x1249249249249249u64);
     return y;
 }
 
