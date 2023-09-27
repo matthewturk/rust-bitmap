@@ -14,6 +14,10 @@ with h5py.File("TNGHalo/halo_59.hdf5", "r") as f:
         print(f"Length {b.len()}")
 f = h5py.File("TNGHalo/halo_59.hdf5", "r")
 
+
 print(bitmaps[0].intersection_len(bitmaps[1]))
 print(bitmaps[0].intersection_len(bitmaps[4]))
 print(bitmaps[1].intersection_len(bitmaps[4]))
+
+for k, b in bitmaps.items():
+    print(f"{ptype=} {b.len()=} {b.serialized_size()=} {b.num_partitions()=}")

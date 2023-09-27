@@ -13,6 +13,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 hilbert = "0.1.2"
+ndarray-stats = "0.5.1"
 num-traits = "0.2.16"
 numpy = "0.19.0"
 pyo3 = "0.19.0"
